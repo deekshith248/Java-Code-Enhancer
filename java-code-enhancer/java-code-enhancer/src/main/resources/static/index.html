@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java Code Enhancer</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        .container {
+            width: 45%;
+        }
+        #outputContainer {
+            width: 45%;
+            padding: 20px;
+            border-left: 2px solid #ccc;
+        }
+        #output {
+            white-space: pre-wrap; /* Allow formatting of multi-line text */
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Java Code Enhancer</h1>
+    <textarea id="sourceCode" placeholder="Paste your Java code here..."></textarea>
+    <button id="validateTextButton">Validate Text</button>
+    <button id="enhanceTextButton">Enhance Code</button>
+
+    <h2>File Upload</h2>
+    <input type="file" id="fileInput" multiple>
+    <button id="validateFileButton">Validate File</button>
+    <button id="enhanceFileButton">Enhance File</button>
+</div>
+
+<div id="outputContainer">
+    <h2>Output</h2>
+    <pre id="output"></pre>
+    <button id="downloadButton">Download Enhanced Code</button>
+</div>
+
+<script>
+    document.getElementById('validateTextButton').onclick = function() {
+     const sourceCode = document.getElementById('sourceCode').value;
+
+     fetch('/api/code-enhancer/validate/text', {
+         method: 'POST',
+         headers: {
+             'Content-Type': 'application/json'
+         },
+         body: JSON.stringify({ code: sourceCode }) // Wrap string in an object
+     })
+     .then(response => response.json())
+     .then(data => {
+         document.getElementById('output').textContent =
+             `Validation: ${data.valid ? 'Valid' : 'Invalid'}\nMessage: ${data.message}`;
+     })
+     .catch(error => console.error('Error:', error));
+ };
+
+     document.getElementById('enhanceTextButton').onclick = function () {
+    const sourceCode = document.getElementById('sourceCode').value;
+
+    fetch('/api/code-enhancer/enhance/text', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: sourceCode }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        const { enhancedCode, warnings, codeMetrics } = data;
+
+        // Format warnings and code metrics for display
+        const warningsText = warnings && warnings.length > 0 ? warnings.join(', ') : 'No warnings.';
+        const metricsText = codeMetrics
+            ? Object.entries(codeMetrics)
+                  .map(([key, value]) => `${key}: ${value}`)
+                  .join('\n')
+            : 'Metrics unavailable.';
+
+        // Update output element with the response details
+        document.getElementById('output').textContent = `
+Enhanced Code:
+${enhancedCode || 'Enhancement failed.'}
+
+Warnings:
+${warningsText}
+
+Code Metrics:
+${metricsText}
+        `.trim();
+
+        // Show the download button
+        if (enhancedCode) {
+            const downloadButton = document.getElementById('downloadButton');
+            downloadButton.style.display = 'inline-block'; // Show download button
+
+            // Set the download functionality
+            downloadButton.onclick = function () {
+                const blob = new Blob([enhancedCode], { type: 'text/plain' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'enhancedCode.java'; // Download as .java file
+                link.click();
+            };
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('output').textContent = 'An error occurred while enhancing the code.';
+    });
+};
+
+
+     document.getElementById('validateFileButton').onclick = function() {
+         const fileInput = document.getElementById('fileInput');
+         const file = fileInput.files[0];
+         const formData = new FormData();
+         formData.append('file', file);
+
+         fetch('/api/code-enhancer/validate/file', {
+             method: 'POST',
+             body: formData
+         })
+         .then(response => response.json())
+         .then(data => {
+             document.getElementById('output').textContent = `Validation: ${data.valid ? 'Valid' : 'Invalid'}\nMessage: ${data.message}`;
+         })
+         .catch(error => console.error('Error:', error));
+     };
+
+     document.getElementById('enhanceFileButton').onclick = function () {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        document.getElementById('output').textContent = 'Please select a file to upload.';
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    fetch('/api/code-enhancer/enhance/file', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        const { enhancedCode, warnings, codeMetrics } = data;
+
+        // Format warnings and code metrics for display
+        const warningsText = warnings && warnings.length > 0 ? warnings.join(', ') : 'No warnings.';
+        const metricsText = codeMetrics
+            ? Object.entries(codeMetrics)
+                  .map(([key, value]) => `${key}: ${value}`)
+                  .join('\n')
+            : 'Metrics unavailable.';
+
+        // Update the output element with the response details
+        document.getElementById('output').textContent = `
+Enhanced Code:
+${enhancedCode || 'Enhancement failed.'}
+
+Warnings:
+${warningsText}
+
+Code Metrics:
+${metricsText}
+        `.trim();
+
+        // Show the download button
+        if (enhancedCode) {
+            const downloadButton = document.getElementById('downloadButton');
+            downloadButton.style.display = 'inline-block'; // Show download button
+
+            // Set the download functionality
+            downloadButton.onclick = function () {
+                const blob = new Blob([enhancedCode], { type: 'text/plain' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'enhancedCode.java'; // Download as .java file
+                link.click();
+            };
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('output').textContent = 'An error occurred while enhancing the file.';
+    });
+};
+</script>
+</body>
+</html>
